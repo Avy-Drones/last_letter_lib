@@ -183,6 +183,13 @@ namespace last_letter_lib
             // Methods
             ParameterManager(string name);
             ParameterManager(string name, const YAML::Node);
+            // Deep-copy to avoid yaml-cpp dangling references across memory pools
+            ParameterManager(const ParameterManager& other) : name(other.name), parameters_(YAML::Clone(other.parameters_)) {}
+            ParameterManager& operator=(const ParameterManager& other) {
+                name = other.name;
+                parameters_ = YAML::Clone(other.parameters_);
+                return *this;
+            }
             // Get a parameter. Can accept nested names.
             template <typename T>
             T get(const string &param_name)
@@ -246,6 +253,8 @@ namespace last_letter_lib
             void load_parameters_(YAML::Node);
             vector<string> get_keys_(YAML::Node) const; // It's also a classmethod
             // Variables
+            // Prevent YAML memory pools from being freed while cross-pool references exist
+            vector<YAML::Node> child_pool_refs_;
             YAML::Node parameters_{YAML::Node()};
         };
 

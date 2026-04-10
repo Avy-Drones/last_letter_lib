@@ -3,6 +3,11 @@ project(last_letter_lib VERSION 2.1.0 LANGUAGES CXX)
 
 message(STATUS "Building ${SKBUILD_PROJECT_NAME}")
 
+# Default install destination when not building via scikit-build
+if(NOT SKBUILD_PROJECT_NAME)
+  set(SKBUILD_PROJECT_NAME "lib")
+endif()
+
 # Set compiler standards
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -34,31 +39,30 @@ find_package(pybind11 PATHS ${Python3_SITELIB}/pybind11/share/cmake/pybind11 CON
 
 # add_subdirectory(external/pybind11)
 
-# Path where libyaml-cpp.so will be built
-set(YAML_CPP_SO_PATH ${CMAKE_BINARY_DIR}/ext-yaml-cpp-prefix/src/ext-yaml-cpp-build/libyaml-cpp.so)
-
 # Import yaml-cpp
-include(FetchContent)
-
-FetchContent_Declare(
-  yaml_cpp
-  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-  GIT_TAG        0.8.0
-)
-
-# Set options before the library is added
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-
-FetchContent_MakeAvailable(yaml_cpp)
-# Ensure the yaml-cpp library (and other files) will get installed before they get cleaned.
-install(TARGETS yaml-cpp
-        EXPORT yamlcppTargets
-        LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}
-        ARCHIVE DESTINATION ${SKBUILD_PROJECT_NAME}
-        RUNTIME DESTINATION ${SKBUILD_PROJECT_NAME}
-)
+if(DEFINED SKBUILD_PROJECT_NAME AND NOT SKBUILD_PROJECT_NAME STREQUAL "lib")
+  # Building via scikit-build (pip install): fetch yaml-cpp from source
+  set(YAML_CPP_SO_PATH ${CMAKE_BINARY_DIR}/ext-yaml-cpp-prefix/src/ext-yaml-cpp-build/libyaml-cpp.so)
+  include(FetchContent)
+  FetchContent_Declare(
+    yaml_cpp
+    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+    GIT_TAG        0.8.0
+  )
+  set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+  set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(yaml_cpp)
+  install(TARGETS yaml-cpp
+          EXPORT yamlcppTargets
+          LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}
+          ARCHIVE DESTINATION ${SKBUILD_PROJECT_NAME}
+          RUNTIME DESTINATION ${SKBUILD_PROJECT_NAME}
+  )
+else()
+  # Building via ExternalProject (colcon): use system yaml-cpp
+  find_package(yaml-cpp REQUIRED)
+endif()
 
 
 include_directories(
@@ -108,12 +112,15 @@ set_target_properties(cpp_last_letter_lib PROPERTIES
     BUILD_RPATH "$ORIGIN"
 )
 target_link_libraries(cpp_last_letter_lib PRIVATE last_letter_lib)
-install(TARGETS cpp_last_letter_lib DESTINATION ${SKBUILD_PROJECT_NAME})
+install(TARGETS cpp_last_letter_lib LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
 
 # Copy data files to home folder
 # file(COPY last_letter_models DESTINATION $ENV{HOME}) # Deprecated, using new models folder
 file(COPY models DESTINATION $ENV{HOME}/last_letter_models)
 file(COPY last_letter_models/HID.yaml DESTINATION $ENV{HOME}/last_letter_models)
+file(COPY last_letter_models/world.yaml DESTINATION $ENV{HOME}/last_letter_models)
+file(COPY last_letter_models/environment.yaml DESTINATION $ENV{HOME}/last_letter_models)
+file(COPY last_letter_models/Sensors_parameters.yaml DESTINATION $ENV{HOME}/last_letter_models)
 
 # Export the header files for use by consumers of the library
 # ament_export_include_directories(include)  # Unnecessary according to https://index.ros.org/doc/ros2/Tutorials/Ament-CMake-Documentation/#building-a-library

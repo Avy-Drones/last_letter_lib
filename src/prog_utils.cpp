@@ -67,7 +67,7 @@ namespace last_letter_lib
 
         ParameterManager::ParameterManager(string name_p, const YAML::Node parameters_p) : name{name_p}
         {
-            parameters_ = parameters_p;
+            parameters_ = YAML::Clone(parameters_p);
         }
 
         void ParameterManager::load_file(string filepath)
@@ -98,6 +98,7 @@ namespace last_letter_lib
 
         void ParameterManager::register_child_mngr(ParameterManager child_mngr)
         {
+            child_pool_refs_.push_back(child_mngr.parameters_);
             parameters_[child_mngr.name] = child_mngr.parameters_;
         }
 
