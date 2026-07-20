@@ -470,13 +470,14 @@ class World:
     _sdf_desc = None
     _name = None
     _max_step_size = 0.004
-    _real_time_factor = 1
-    _real_time_update_rate = 250
 
     def __init__(self, name):
         self._name = name
         self._sdf_desc = sdf.create_sdf_element("world")
         self._sdf_desc.physics.reset(mode="ode", with_optional_elements=True)
+
+        self._real_time_factor = float(os.environ.get("PX4_SIM_SPEED_FACTOR", "1.0"))
+        self._real_time_update_rate = self._real_time_factor / self._max_step_size
 
     def set_step_size(self, size):
         self._max_step_size = size
