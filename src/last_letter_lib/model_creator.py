@@ -388,7 +388,12 @@ class Aircraft:
         copy_meshes(meshes, model_dir)
 
         gazebo_model = pcg_gazebo.simulation.SimulationModel.from_sdf(self._sdf_desc)
-        gazebo_model.to_gazebo_model(output_dir=models_dir, overwrite=True)
+        gazebo_model.to_gazebo_model(
+            output_dir=models_dir,
+            overwrite=True,
+            author="last_letter",
+            email="last_letter@email.com",
+        )
 
     def create_model_folder(self, configs_folder):
         model_directory = os.path.join(configs_folder, self.name)

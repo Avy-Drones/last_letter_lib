@@ -2,8 +2,9 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <cstdlib>
+#include <stdexcept>
 // #include <string>
-// #include <stdexcept>
 
 #include "last_letter_lib/prog_utils.hpp"
 
@@ -271,9 +272,22 @@ namespace last_letter_lib
         // Return home folder, without trailling slash
         string getHomeFolder()
         {
+            // Prefer $HOME. getpwuid() returns nullptr when the running uid has
+            // no entry in /etc/passwd (e.g. a container started with
+            // --user $(id -u)), and dereferencing it then crashes.
+            const char *home = std::getenv("HOME");
+            if (home != nullptr && home[0] != '\0')
+            {
+                return string(home);
+            }
             passwd *pw = getpwuid(getuid());
-            string path(pw->pw_dir);
-            return path;
+            if (pw == nullptr)
+            {
+                throw std::runtime_error(
+                    "Cannot determine the home folder: $HOME is unset and uid " +
+                    std::to_string(getuid()) + " has no passwd entry.");
+            }
+            return string(pw->pw_dir);
         }
 
         /////////////////////////////////////////////////////////////////
